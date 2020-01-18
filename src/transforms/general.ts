@@ -1,4 +1,4 @@
-import { createDraft, finishDraft, isDraft } from 'immer'
+import { createDraft, finishDraft, isDraft, Drafted } from 'immer'
 import {
   Node,
   Editor,
@@ -20,7 +20,15 @@ export const GeneralTransforms = {
 
   transform(editor: Editor, op: Operation) {
     editor.children = createDraft(editor.children)
-    let selection = editor.selection && createDraft(editor.selection)
+    /** 
+     * TS2322: Type 'Range | Partial<Range>' is not assignable to type 'Drafted<Range, ImmerState>'.
+Type 'Range' is not assignable to type 'Drafted<Range, ImmerState>'.
+Property '[DRAFT_STATE]' is missing in type 'Range' but required in type '{ [DRAFT_STATE]: ImmerState; }'.
+     * 
+     *  -> Drafted type need Range to have [DRAFT_STATE]
+     *  - workaround: add 'Drafted<Range> | Range' 
+     **/
+    let selection: Drafted<Range> | Range = editor.selection && createDraft(editor.selection)
 
     switch (op.type) {
       case 'insert_node': {
@@ -207,15 +215,6 @@ export const GeneralTransforms = {
         const { newProperties } = op
 
         if (newProperties == null) {
-          /**
-           * TS2322: Type 'Range | Partial<Range>' is not assignable to type 'Drafted<Range, ImmerState>'.
-        Type 'Range' is not assignable to type 'Drafted<Range, ImmerState>'.
-        Property '[DRAFT_STATE]' is missing in type 'Range' but required in type '{ [DRAFT_STATE]: ImmerState; }'.
-           *
-           *  -> Drafted type need Range to have [DRAFT_STATE]
-           *  - workaround: assign null 
-           **/
-          // workaround
           selection = null
         } else if (selection == null) {
           if (!Range.isRange(newProperties)) {
@@ -225,19 +224,7 @@ export const GeneralTransforms = {
               )} when there is no current selection.`
             )
           }
-          /** 
-             * TS2322: Type 'Range | Partial<Range>' is not assignable to type 'Drafted<Range, ImmerState>'.
-    Type 'Range' is not assignable to type 'Drafted<Range, ImmerState>'.
-      Property '[DRAFT_STATE]' is missing in type 'Range' but required in type '{ [DRAFT_STATE]: ImmerState; }'.
-             * 
-             *  -> Drafted type need Range to have [DRAFT_STATE]
-             *  - workaround: not assign newProperties (Range) to selection (Drafted). instead, replace selection's Range properties step by step
-             **/
-          //selection = newProperties
-
-          // workaround
-          if (newProperties.anchor) selection.anchor = newProperties.anchor
-          if (newProperties.focus) selection.focus = newProperties.focus
+          selection = newProperties
 
         } else {
           Object.assign(selection, newProperties)
