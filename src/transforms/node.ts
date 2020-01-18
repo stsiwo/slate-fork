@@ -673,7 +673,7 @@ export const NodeTransforms = {
       props = [props]
     }
 
-    const obj = {}
+    const obj: {[k: string]: any} = {}
 
     for (const key of props) {
       obj[key] = null
